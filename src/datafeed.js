@@ -1,4 +1,7 @@
 import { makeApiRequest, generateSymbol, parseFullSymbol } from "./helpers.js";
+import { subscribeOnStream, unsubscribeFromStream } from "./streaming.js";
+
+const lastBarsCache = new Map();
 
 const configurationData = {
   supported_resolutions: ["1D", "1W", "1M"],
@@ -133,6 +136,11 @@ export default {
           ];
         }
       });
+
+      if (firstDataRequest) {
+        lastBarsCache.set(symbolInfo.full_name, { ...bars[bars.length - 1] });
+      }
+
       console.log(`[getBars]: returned ${bars.length} bar(s)`);
       onHistoryCallback(bars, { noData: false });
     } catch (error) {
@@ -142,8 +150,17 @@ export default {
   },
   subscribeBars: (symbolInfo, resolution, onRealtimeCallback, subscribeUID, onResetCacheNeededCallback) => {
     console.log("[subscribeBars]: Method call with subscribeUID:", subscribeUID);
+    subscribeOnStream(
+      symbolInfo,
+      resolution,
+      onRealtimeCallback,
+      subscribeUID,
+      onResetCacheNeededCallback,
+      lastBarsCache.get(symbolInfo.full_name)
+    );
   },
   unsubscribeBars: (subscriberUID) => {
     console.log("[unsubscribeBars]: Method call with subscriberUID:", subscriberUID);
+    unsubscribeFromStream(subscriberUID);
   },
 };
